@@ -3,6 +3,7 @@ description: A flutter package to simplify pagination with firestore data.
 version: 1.0.3+1
 homepage: https://github.com/excogitatr/paginate_firestore
 issue_tracker: https://github.com/excogitatr/paginate_firestore/issues
+publish_to: none
 
 environment:
   sdk: ">=2.15.0 <3.0.0"
