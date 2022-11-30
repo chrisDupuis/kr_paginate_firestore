@@ -119,7 +119,7 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
           }
 
           if (loadedState.documentSnapshots.isEmpty) {
-            return _buildWithScrollView(context, widget.onEmpty);
+            return _buildWithScrollView(context, widget.onEmpty, isEmpty: true);
           }
           return widget.itemBuilderType == PaginateBuilderType.listView
               ? _buildListView(loadedState)
@@ -131,7 +131,8 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
     );
   }
 
-  Widget _buildWithScrollView(BuildContext context, Widget child) {
+  Widget _buildWithScrollView(BuildContext context, Widget child, {bool isEmpty = false}) {
+    if(isEmpty) return child;
     return SingleChildScrollView(
       child: Container(
         alignment: Alignment.center,
