@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:preload_page_view/preload_page_view.dart';
 import 'package:provider/provider.dart';
 
 import 'bloc/pagination_cubit.dart';
@@ -46,8 +47,9 @@ class PaginateFirestore extends StatefulWidget {
     this.header,
     this.footer,
     this.isLive = false,
+    this.preloadPagesCount = 1,
     this.includeMetadataChanges = false,
-    this.options,
+    this.options, this.firstPage,
   }) : super(key: key);
 
   final Widget bottomLoader;
@@ -56,6 +58,7 @@ class PaginateFirestore extends StatefulWidget {
   final Widget initialLoader;
   final PaginateBuilderType itemBuilderType;
   final int itemsPerPage;
+  final int preloadPagesCount;
   final List<ChangeNotifier>? listeners;
   final EdgeInsets padding;
   final ScrollPhysics? physics;
@@ -64,7 +67,7 @@ class PaginateFirestore extends StatefulWidget {
   final bool allowImplicitScrolling;
   final ScrollViewKeyboardDismissBehavior keyboardDismissBehavior;
   final ScrollController? scrollController;
-  final PageController? pageController;
+  final PreloadPageController? pageController;
   final Axis scrollDirection;
   final Widget separator;
   final bool shrinkWrap;
@@ -72,7 +75,7 @@ class PaginateFirestore extends StatefulWidget {
   final DocumentSnapshot? startAfterDocument;
   final Widget? header;
   final Widget? footer;
-
+  final Widget? firstPage;
   /// Use this only if `isLive = false`
   final GetOptions? options;
 
@@ -95,6 +98,7 @@ class PaginateFirestore extends StatefulWidget {
 
 class _PaginateFirestoreState extends State<PaginateFirestore> {
   PaginationCubit? _cubit;
+  int get count => (widget.firstPage == null ? 0:1);
 
   @override
   Widget build(BuildContext context) {
@@ -295,28 +299,29 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
   Widget _buildPageView(PaginationLoaded loadedState) {
     var pageView = Padding(
       padding: widget.padding,
-      child: PageView.custom(
+      child: PreloadPageView.custom(
         reverse: widget.reverse,
-        allowImplicitScrolling: widget.allowImplicitScrolling,
         controller: widget.pageController,
         scrollDirection: widget.scrollDirection,
         physics: widget.physics,
         onPageChanged: widget.onPageChanged,
+        preloadPagesCount: widget.preloadPagesCount,
         childrenDelegate: SliverChildBuilderDelegate(
           (context, index) {
-            if (index >= loadedState.documentSnapshots.length) {
+            if (index >= (loadedState.documentSnapshots.length + count)) {
               _cubit!.fetchPaginatedList();
               return widget.bottomLoader;
             }
+            if(index == 0 && widget.firstPage != null) return widget.firstPage;
             return widget.itemBuilder(
               context,
               loadedState.documentSnapshots,
               index,
             );
           },
-          childCount: loadedState.hasReachedEnd
+          childCount: count + (loadedState.hasReachedEnd
               ? loadedState.documentSnapshots.length
-              : loadedState.documentSnapshots.length + 1,
+              : loadedState.documentSnapshots.length + 1),
         ),
       ),
     );
