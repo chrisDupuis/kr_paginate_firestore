@@ -99,21 +99,18 @@ class PaginateFirestore extends StatefulWidget {
 class _PaginateFirestoreState extends State<PaginateFirestore> {
   PaginationCubit? _cubit;
   int get count => (widget.firstPage == null ? 0:1);
+  UniqueKey key = UniqueKey();
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PaginationCubit, PaginationState>(
       bloc: _cubit,
       builder: (context, state) {
-        if (state is PaginationInitial) {
-          return _buildWithScrollView(context, widget.initialLoader);
-        } else if (state is PaginationError) {
-          return _buildWithScrollView(
-              context,
-              (widget.onError != null)
-                  ? widget.onError!(state.error)
-                  : ErrorDisplay(exception: state.error));
-        } else {
+        return (state is PaginationInitial)? _buildWithScrollView(context, widget.initialLoader, isEmpty: true):
+        (state is PaginationError) ? _buildWithScrollView(
+        context,
+        (widget.onError != null)? widget.onError!(state.error): ErrorDisplay(exception: state.error)) :
+        Builder(builder: (context){
           final loadedState = state as PaginationLoaded;
           if (widget.onLoaded != null) {
             widget.onLoaded!(loadedState);
@@ -128,9 +125,9 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
           return widget.itemBuilderType == PaginateBuilderType.listView
               ? _buildListView(loadedState)
               : widget.itemBuilderType == PaginateBuilderType.gridView
-                  ? _buildGridView(loadedState)
-                  : _buildPageView(loadedState);
-        }
+              ? _buildGridView(loadedState)
+              : _buildPageView(loadedState);
+        });
       },
     );
   }
@@ -316,7 +313,7 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
             return widget.itemBuilder(
               context,
               loadedState.documentSnapshots,
-              index,
+              index-(count),
             );
           },
           childCount: count + (loadedState.hasReachedEnd
