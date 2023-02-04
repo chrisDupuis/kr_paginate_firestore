@@ -23,7 +23,7 @@ class PaginateFirestore extends StatefulWidget {
     required this.query,
     required this.itemBuilderType,
     this.gridDelegate =
-        const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
     this.startAfterDocument,
     this.itemsPerPage = 15,
     this.onError,
@@ -49,7 +49,7 @@ class PaginateFirestore extends StatefulWidget {
     this.isLive = false,
     this.preloadPagesCount = 1,
     this.includeMetadataChanges = false,
-    this.options, this.firstPage,
+    this.options, this.firstPage, this.excludeId
   }) : super(key: key);
 
   final Widget bottomLoader;
@@ -76,6 +76,7 @@ class PaginateFirestore extends StatefulWidget {
   final Widget? header;
   final Widget? footer;
   final Widget? firstPage;
+  final String? excludeId;
   /// Use this only if `isLive = false`
   final GetOptions? options;
 
@@ -108,8 +109,8 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
       builder: (context, state) {
         return (state is PaginationInitial)? _buildWithScrollView(context, widget.initialLoader, isEmpty: true):
         (state is PaginationError) ? _buildWithScrollView(
-        context,
-        (widget.onError != null)? widget.onError!(state.error): ErrorDisplay(exception: state.error)) :
+            context,
+            (widget.onError != null)? widget.onError!(state.error): ErrorDisplay(exception: state.error)) :
         Builder(builder: (context){
           final loadedState = state as PaginationLoaded;
           if (widget.onLoaded != null) {
@@ -123,9 +124,9 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
             return _buildWithScrollView(context, widget.onEmpty, isEmpty: true);
           }
           return widget.itemBuilderType == PaginateBuilderType.listView
-              ? _buildListView(loadedState)
+          ? _buildListView(loadedState)
               : widget.itemBuilderType == PaginateBuilderType.gridView
-              ? _buildGridView(loadedState)
+          ? _buildGridView(loadedState)
               : _buildPageView(loadedState);
         });
       },
@@ -194,7 +195,7 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
           sliver: SliverGrid(
             gridDelegate: widget.gridDelegate,
             delegate: SliverChildBuilderDelegate(
-              (context, index) {
+                  (context, index) {
                 if (index >= loadedState.documentSnapshots.length) {
                   _cubit!.fetchPaginatedList();
                   return widget.bottomLoader;
@@ -219,8 +220,8 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
       return MultiProvider(
         providers: widget.listeners!
             .map((_listener) => ChangeNotifierProvider(
-                  create: (context) => _listener,
-                ))
+          create: (context) => _listener,
+        ))
             .toList(),
         child: gridView,
       );
@@ -243,7 +244,7 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
           padding: widget.padding,
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (context, index) {
+                  (context, index) {
                 final itemIndex = index ~/ 2;
                 if (index.isEven) {
                   if (itemIndex >= loadedState.documentSnapshots.length) {
@@ -251,11 +252,11 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
                     return widget.bottomLoader;
                   }
                   return widget.itemBuilder(
-                    context,
-                    loadedState.documentSnapshots,
-                    itemIndex,
-                  );
-                }
+                context,
+                loadedState.documentSnapshots,
+                itemIndex,
+                );
+              }
                 return widget.separator;
               },
               semanticIndexCallback: (widget, localIndex) {
@@ -268,9 +269,9 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
               childCount: max(
                   0,
                   (loadedState.hasReachedEnd
-                              ? loadedState.documentSnapshots.length
-                              : loadedState.documentSnapshots.length + 1) *
-                          2 -
+                      ? loadedState.documentSnapshots.length
+                      : loadedState.documentSnapshots.length + 1) *
+                      2 -
                       1),
             ),
           ),
@@ -283,8 +284,8 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
       return MultiProvider(
         providers: widget.listeners!
             .map((_listener) => ChangeNotifierProvider(
-                  create: (context) => _listener,
-                ))
+          create: (context) => _listener,
+        ))
             .toList(),
         child: listView,
       );
@@ -304,21 +305,21 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
         onPageChanged: widget.onPageChanged,
         preloadPagesCount: widget.preloadPagesCount,
         childrenDelegate: SliverChildBuilderDelegate(
-          (context, index) {
-            if (index >= (loadedState.documentSnapshots.length + count)) {
+              (context, index) {
+            if (index >= (loadedState.documentSnapshots.length)) {
               _cubit!.fetchPaginatedList();
               return widget.bottomLoader;
             }
             if(index == 0 && widget.firstPage != null) return widget.firstPage;
             return widget.itemBuilder(
               context,
-              loadedState.documentSnapshots,
-              index-(count),
+              loadedState.documentSnapshots.where((e) => e.id != widget.excludeId).toList(),
+              index - count,
             );
           },
-          childCount: count + (loadedState.hasReachedEnd
+          childCount: (loadedState.hasReachedEnd
               ? loadedState.documentSnapshots.length
-              : loadedState.documentSnapshots.length + 1),
+              : loadedState.documentSnapshots.length),
         ),
       ),
     );
@@ -327,8 +328,8 @@ class _PaginateFirestoreState extends State<PaginateFirestore> {
       return MultiProvider(
         providers: widget.listeners!
             .map((_listener) => ChangeNotifierProvider(
-                  create: (context) => _listener,
-                ))
+          create: (context) => _listener,
+        ))
             .toList(),
         child: pageView,
       );
